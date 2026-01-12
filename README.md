@@ -14,9 +14,10 @@ Antes de comenzar, asegúrate de tener instaladas las versiones correctas:
 Clona el repositorio y ejecuta el siguiente comando para instalar todas las dependencias:
 
     ```bash
-            pnpm install
+pnpm install
 
 ### 3. Iniciar proyecto
 
-   ```bash
-          pnpm dev
+
+    ```bash
+ pnpm dev
