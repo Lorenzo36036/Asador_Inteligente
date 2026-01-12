@@ -13,7 +13,7 @@ const SideBar = ({
     { id: 'pos', label: 'Punto de Venta', icon: <ShoppingCart size={18} /> },
     { id: 'stock', label: 'Gestión de Stock', icon: <Package size={18} /> },
     { id: 'ia', label: 'Dashboard IA', icon: <Brain size={18} /> },
-    { id: 'recursos', label: 'Recursos Usados', icon: <ClipboardList size={18} /> }
+    { id: 'resources', label: 'Recursos Usados', icon: <ClipboardList size={18} /> }
   ]
 
   return (
