@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   Utensils,
   Beer,
@@ -11,7 +11,7 @@ import {
   Smartphone
 } from 'lucide-react'
 
-const PointOfSale = () => {
+const PointOfSale = (): React.JSX.Element => {
   const [activeTab, setActiveTab] = useState('comida')
   const [carrito, setCarrito] = useState([])
   const [metodoPago, setMetodoPago] = useState('efectivo')
