@@ -1,7 +1,11 @@
+import PointOfSale from './components/PointOfSale'
+import SideBar from './components/Sidebar'
+
 function App(): React.JSX.Element {
   return (
     <>
-      <div className="flex justify-center text-2xl text-red-800">Hola mundo</div>
+      <SideBar />
+      <PointOfSale />
     </>
   )
 }
