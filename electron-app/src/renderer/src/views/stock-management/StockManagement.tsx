@@ -1,290 +1,265 @@
-import { useState } from 'react'
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useEffect, useState } from 'react'
 
-const initialStock = [
-  {
-    nombre: 'Bife de Chorizo Premium',
-    categoria: 'Carnes',
-    cantidad: '25 kg',
-    compra: 1000,
-    unitario: 1200
-  },
-  {
-    nombre: 'Asado de Tira',
-    categoria: 'Carnes',
-    cantidad: '18 kg',
-    compra: 800,
-    unitario: 950
-  },
-  {
-    nombre: 'Entraña',
-    categoria: 'Carnes',
-    cantidad: '12 kg',
-    compra: 1200,
-    unitario: 1400
-  },
-  {
-    nombre: 'Papas',
-    categoria: 'Guarniciones',
-    cantidad: '50 kg',
-    compra: 60,
-    unitario: 80
-  },
-  {
-    nombre: 'Coca Cola 500ml',
-    categoria: 'Bebidas',
-    cantidad: '48 kg',
-    compra: 500,
-    unitario: 800
-  },
-  {
-    nombre: 'Agua Mineral 500ml',
-    categoria: 'Bebidas',
-    cantidad: '60 kg',
-    compra: 350,
-    unitario: 600
-  },
-  {
-    nombre: 'Cerveza Quilmes',
-    categoria: 'Bebidas',
-    cantidad: '36 kg',
-    compra: 800,
-    unitario: 1200
-  },
-  {
-    nombre: 'Vino Tinto Botella',
-    categoria: 'Bebidas',
-    cantidad: '15 kg',
-    compra: 2500,
-    unitario: 3500
-  },
-  {
-    nombre: 'Fernet Branca 750ml',
-    categoria: 'Bebidas',
-    cantidad: '12 kg',
-    compra: 3200,
-    unitario: 4500
-  }
-]
-
-function getCategorias(stock: { categoria: unknown }[]): unknown[] {
-  return [
-    'Todas las categorías',
-    ...Array.from(new Set(stock.map((i: { categoria: unknown }) => i.categoria)))
-  ]
+interface Insumo {
+  id: number
+  nombre_insumo: string
+  categoria: string
+  cantidad: number
+  precio_compra: number
+  created_at: string
 }
 
 function StockManagement(): React.JSX.Element {
-  const [stock, setStock] = useState(initialStock)
+  const [stock, setStock] = useState<Insumo[]>([])
   const [busqueda, setBusqueda] = useState('')
   const [categoria, setCategoria] = useState('Todas las categorías')
   const [showModal, setShowModal] = useState(false)
+
   const [nuevo, setNuevo] = useState({
     nombre: '',
     categoria: '',
     cantidad: '',
-    compra: '',
-    unitario: ''
+    compra: ''
   })
 
-  const categorias = getCategorias(stock)
+  const fetchStock = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/inventario/')
+      if (response.ok) {
+        const data = await response.json()
+        console.log(data)
+        setStock(data)
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchStock()
+  }, [])
+
+  const eliminarInsumo = async (id: number) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/inventario/${id}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        setStock(stock.filter((item) => item.id !== id))
+      }
+    } catch (error) {
+      alert('Error al conectar con FastAPI')
+    }
+  }
+
+  const categorias = ['Todas las categorías', ...Array.from(new Set(stock.map((i) => i.categoria)))]
   const filtrados = stock.filter(
     (i) =>
       (categoria === 'Todas las categorías' || i.categoria === categoria) &&
-      i.nombre.toLowerCase().includes(busqueda.toLowerCase())
+      i.nombre_insumo.toLowerCase().includes(busqueda.toLowerCase())
   )
-  const totalCompra = filtrados.reduce((acc, i) => acc + i.compra, 0)
 
-  function abrirModal(): void {
-    setNuevo({ nombre: '', categoria: '', cantidad: '', compra: '', unitario: '' })
+  const totalInversion = filtrados.reduce((acc, i) => acc + Number(i.precio_compra), 0)
+  const abrirModal = () => {
+    setNuevo({ nombre: '', categoria: '', cantidad: '', compra: '' })
     setShowModal(true)
   }
 
-  function cerrarModal(): void {
-    setShowModal(false)
-  }
+  const cerrarModal = () => setShowModal(false)
 
-  function guardarNuevo(e: { preventDefault: () => void }): void {
-    e.preventDefault()
-    setStock([
-      ...stock,
-      {
-        nombre: nuevo.nombre,
-        categoria: nuevo.categoria,
-        cantidad: nuevo.cantidad + ' kg',
-        compra: Number(nuevo.compra),
-        unitario: Number(nuevo.unitario)
+  async function registrarInsumo() {
+    if (!nuevo.nombre || !nuevo.categoria || !nuevo.cantidad) {
+      alert('Por favor, completa los campos obligatorios.')
+      return
+    }
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/inventario/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre_insumo: nuevo.nombre,
+          categoria: nuevo.categoria,
+          cantidad: Number(nuevo.cantidad),
+          precio_compra: Number(nuevo.compra)
+        })
+      })
+
+      if (response.ok) {
+        const creado = await response.json()
+        setStock([...stock, creado])
+        cerrarModal()
+      } else {
+        alert('Error al guardar en la base de datos')
       }
-    ])
-    setShowModal(false)
+    } catch (error) {
+      alert('No se pudo conectar con el servidor')
+    }
   }
 
   return (
     <>
-      <div className={showModal ? 'p-8 blur-sm pointer-events-none select-none' : 'p-8'}>
-        <h2 className="text-2xl font-bold mb-1">Gestión de Stock</h2>
-        <p className="text-gray-500 mb-6">Administra el inventario de insumos</p>
-        <div className="flex flex-wrap gap-4 items-center mb-6">
+      <div className={showModal ? 'p-8 z-10' : 'p-8'}>
+        <div className="flex justify-between items-end mb-6">
+          <div>
+            <h2 className="text-2xl font-bold">Gestión de Stock</h2>
+            <p className="text-gray-500">Inventario sincronizado con DB</p>
+          </div>
+          <button
+            onClick={abrirModal}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded-lg shadow"
+          >
+            + Registrar Insumo
+          </button>
+        </div>
+
+        <div className="flex gap-4 mb-6">
           <input
-            className="flex-1 min-w-[250px] border rounded-lg px-4 py-2 bg-gray-50"
-            placeholder="Buscar por nombre de insumo..."
+            className="flex-1 border rounded-lg px-4 py-2 bg-gray-50"
+            placeholder="Buscar insumo..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
           <select
             className="border rounded-lg px-4 py-2 bg-gray-50"
             value={categoria}
-            title={categoria}
             onChange={(e) => setCategoria(e.target.value)}
           >
             {categorias.map((cat) => (
-              <option key={String(cat)} value={String(cat)} title={String(cat)}>
-                {String(cat)}
+              <option key={cat} value={cat}>
+                {cat}
               </option>
             ))}
           </select>
-          <button
-            type="button"
-            className="ml-auto bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-lg shadow"
-            onClick={abrirModal}
-          >
-            + Registrar Insumo
-          </button>
         </div>
-        <div className="mb-2 text-gray-500 text-sm">
-          Mostrando {filtrados.length} de {stock.length} insumos
-        </div>
-        <div className="bg-white rounded-xl shadow p-2 overflow-x-auto">
+
+        <div className="bg-white rounded-xl shadow overflow-hidden">
           <table className="min-w-full text-left">
-            <thead>
-              <tr className="border-b">
-                <th className="py-3 px-4 font-semibold">Insumo</th>
-                <th className="py-3 px-4 font-semibold">Categoría</th>
-                <th className="py-3 px-4 font-semibold">Cantidad</th>
-                <th className="py-3 px-4 font-semibold">Precio de Compra</th>
-                <th className="py-3 px-4 font-semibold">Precio Unitario</th>
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="py-4 px-6 font-semibold">Insumo</th>
+                <th className="py-4 px-6 font-semibold">Categoría</th>
+                <th className="py-4 px-6 font-semibold">Cantidad </th>
+                <th className="py-4 px-6 font-semibold">Costo Compra</th>
+                <th className="py-4 px-6 font-semibold">Fecha ingreso</th>
               </tr>
             </thead>
             <tbody>
               {filtrados.map((i, idx) => (
-                <tr key={idx} className="border-b last:border-b-0">
-                  <td className="py-2 px-4">{i.nombre}</td>
-                  <td className="py-2 px-4">
-                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-semibold">
+                <tr key={idx} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-6">{i.nombre_insumo}</td>
+                  <td className="py-3 px-6">
+                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">
                       {i.categoria}
                     </span>
                   </td>
-                  <td className="py-2 px-4">{i.cantidad}</td>
-                  <td className="py-2 px-4">${i.compra.toLocaleString()}</td>
-                  <td className="py-2 px-4">${i.unitario.toLocaleString()}</td>
+                  <td className="py-3 px-6 font-medium">
+                    {i.cantidad} {i.categoria === 'Bebidas' ? 'unidades' : 'Kg'}{' '}
+                  </td>
+                  <td className="py-3 px-6 font-bold text-gray-700">
+                    ${Number(i.precio_compra).toLocaleString()}
+                  </td>
+
+                  <td className="py-3 px-6 font-bold text-gray-700">
+                    {i.created_at
+                      ? new Date(i.created_at).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })
+                      : 'Sin fecha'}
+                  </td>
+                  <td className="py-2 px-4 text-center">
+                    <button
+                      onClick={() => eliminarInsumo(i.id)}
+                      className="text-red-600 hover:text-red-800 font-bold text-sm"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="flex justify-end items-center mt-4">
-            <span className="font-semibold mr-2">Inversión Total en Compra:</span>
-            <span className="text-red-600 text-lg font-bold">${totalCompra.toLocaleString()}</span>
+
+          <div className="p-6 bg-gray-50 flex justify-end items-center border-t">
+            <span className="text-gray-600 mr-4 font-semibold">Inversión Total:</span>
+            <span className="text-2xl font-black text-red-600">
+              ${totalInversion.toLocaleString()}
+            </span>
           </div>
         </div>
       </div>
-      {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative animate-fadeIn">
-            <button
-              type="button"
-              className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-600"
-              onClick={cerrarModal}
-              aria-label="Cerrar"
-            >
-              ×
-            </button>
-            <h3 className="text-xl font-bold mb-4">Registrar Nuevo Insumo</h3>
-            <form onSubmit={guardarNuevo} className="space-y-4">
+        <div className=" fixed inset-0 z-100 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <h3 className="text-xl font-bold mb-6 text-gray-800">Nuevo Registro</h3>
+
+            <div className="space-y-4">
               <div>
-                <label className="block font-semibold mb-1">Nombre del Insumo</label>
+                <label className="block text-sm font-bold mb-1">Nombre del Insumo</label>
                 <input
-                  className="w-full border rounded-lg px-4 py-2 bg-gray-50"
-                  placeholder="Ej: Bife de Chorizo"
+                  className="w-full border rounded-lg px-4 py-2"
                   value={nuevo.nombre}
                   onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
-                  required
                 />
               </div>
+
               <div>
-                <label className="block font-semibold mb-1">Categoría</label>
+                <label className="block text-sm font-bold mb-1">Categoría</label>
                 <select
-                  title="categoria"
-                  className="w-full border rounded-lg px-4 py-2 bg-gray-50"
+                  className="w-full border rounded-lg px-4 py-2"
                   value={nuevo.categoria}
                   onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value })}
-                  required
                 >
-                  <option value="" disabled>
-                    Seleccionar categoría
-                  </option>
-                  {categorias
-                    .filter((c) => c !== 'Todas las categorías')
-                    .map((cat) => (
-                      <option key={String(cat)} value={String(cat)} title={String(cat)}>
-                        {String(cat)}
-                      </option>
-                    ))}
+                  <option value="">Seleccionar...</option>
+                  <option value="Carnes">Carnes</option>
+                  <option value="Bebidas">Bebidas</option>
+                  <option value="Guarniciones">Guarniciones</option>
                 </select>
               </div>
-              <div>
-                <label className="block font-semibold mb-1">Cantidad (kg)</label>
-                <input
-                  title="cantidad"
-                  type="number"
-                  min="0"
-                  className="w-full border rounded-lg px-4 py-2 bg-gray-50"
-                  value={nuevo.cantidad}
-                  onChange={(e) => setNuevo({ ...nuevo, cantidad: e.target.value })}
-                  required
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold mb-1">
+                    Cantidad {`(${nuevo.categoria === 'Bebidas' ? 'unidad' : 'kg'})`}
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full border rounded-lg px-4 py-2"
+                    value={nuevo.cantidad}
+                    onChange={(e) => setNuevo({ ...nuevo, cantidad: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-1">Costo ($)</label>
+                  <input
+                    type="number"
+                    className="w-full border rounded-lg px-4 py-2"
+                    value={nuevo.compra}
+                    onChange={(e) => setNuevo({ ...nuevo, compra: e.target.value })}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block font-semibold mb-1">Precio de Compra ($)</label>
-                <input
-                  title="precioCompra"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="w-full border rounded-lg px-4 py-2 bg-gray-50"
-                  value={nuevo.compra}
-                  onChange={(e) => setNuevo({ ...nuevo, compra: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block font-semibold mb-1">Costo Unitario ($)</label>
-                <input
-                  title="costo"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="w-full border rounded-lg px-4 py-2 bg-gray-50"
-                  value={nuevo.unitario}
-                  onChange={(e) => setNuevo({ ...nuevo, unitario: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="flex gap-4 mt-6">
+
+              <div className="flex gap-4 mt-8">
                 <button
-                  type="button"
-                  className="flex-1 border border-gray-300 rounded-lg py-2 font-semibold hover:bg-gray-100"
+                  className="flex-1 py-2 font-bold text-gray-500 hover:bg-gray-100 rounded-lg"
                   onClick={cerrarModal}
                 >
                   Cancelar
                 </button>
                 <button
-                  type="submit"
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg py-2"
+                  className="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg shadow-lg hover:bg-red-700"
+                  onClick={registrarInsumo}
                 >
                   Guardar
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
