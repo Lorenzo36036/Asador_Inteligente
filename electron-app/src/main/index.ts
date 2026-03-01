@@ -13,10 +13,11 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      nodeIntegration: true,
+      webSecurity: false
     }
   })
-
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
