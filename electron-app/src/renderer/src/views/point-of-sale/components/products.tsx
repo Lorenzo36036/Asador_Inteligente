@@ -4,12 +4,10 @@ import { JSX } from 'react'
 
 function products({
   productos,
-  agregarAlCarrito,
-  activeTab
+  agregarAlCarrito
 }: {
   productos: any
   agregarAlCarrito: any
-  activeTab: any
 }): JSX.Element {
   return (
     <>

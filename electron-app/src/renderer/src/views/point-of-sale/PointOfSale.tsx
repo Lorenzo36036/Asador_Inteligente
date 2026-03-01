@@ -3,14 +3,12 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react'
-import { Utensils, Beer } from 'lucide-react'
 import SalesHistory from './components/SalesHistory'
 import PurchaseOfConsumables from './components/PurchaseOfConsumables'
 import Products from './components/products'
 import { Shoping, Venta } from '../../interfaces/pointOfSale'
 
 const PointOfSale = (): React.JSX.Element => {
-  const [activeTab, setActiveTab] = useState('comida')
   const [carrito, setCarrito] = useState<Shoping[]>([])
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [ventasRealizadas, setVentasRealizadas] = useState<Venta[]>([])
@@ -22,7 +20,6 @@ const PointOfSale = (): React.JSX.Element => {
     tarjeta: 'af65ae0e-4604-4416-bb10-d0272581a9e7'
   }
 
-  console.log(products)
   const agregarAlCarrito = (producto): any => {
     setCarrito((prev) => {
       const existe = prev.find((item) => item.id == producto.id)
@@ -63,7 +60,6 @@ const PointOfSale = (): React.JSX.Element => {
     }
   }
 
-  console.log(carrito)
   useEffect(() => {
     getProducts()
   }, [])
@@ -80,8 +76,6 @@ const PointOfSale = (): React.JSX.Element => {
       platillos: car,
       total_venta: total
     }
-
-    console.log('Data a enviar:', dataSend)
 
     try {
       const response = await fetch('http://127.0.0.1:8000/registro_pagos/', {
@@ -136,11 +130,7 @@ const PointOfSale = (): React.JSX.Element => {
           </div> */}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Products
-              productos={products}
-              agregarAlCarrito={agregarAlCarrito}
-              activeTab={activeTab}
-            />
+            <Products productos={products} agregarAlCarrito={agregarAlCarrito} />
           </div>
         </div>
 
