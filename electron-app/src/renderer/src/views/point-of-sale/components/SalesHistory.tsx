@@ -7,7 +7,7 @@ function SalesHistory({ ventasRealizadas }: { ventasRealizadas: any }): JSX.Elem
     <div className="bg-white rounded-4xl p-6 shadow-sm border border-gray-100 flex flex-col">
       <div className="flex items-center gap-2 mb-4">
         <Clock size={18} className="text-gray-400" />
-        <h2 className="font-bold text-gray-700">Ventas de Hoy</h2>
+        <h2 className="font-bold text-gray-700">Ventas recientes</h2>
       </div>
 
       {/* Contenedor con Scroll */}

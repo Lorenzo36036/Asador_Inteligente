@@ -13,7 +13,7 @@ function products({
 }): JSX.Element {
   return (
     <>
-      {productos[activeTab].map((prod) => (
+      {productos.map((prod) => (
         <button
           type="button"
           key={prod.id}

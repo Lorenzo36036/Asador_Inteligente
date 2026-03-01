@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Utensils, Beer } from 'lucide-react'
 import SalesHistory from './components/SalesHistory'
 import PurchaseOfConsumables from './components/PurchaseOfConsumables'
 import Products from './components/products'
-import { productsDataAssets } from '../../assets/pointOfSaleData'
 import { Shoping, Venta } from '../../interfaces/pointOfSale'
 
 const PointOfSale = (): React.JSX.Element => {
@@ -12,10 +14,18 @@ const PointOfSale = (): React.JSX.Element => {
   const [carrito, setCarrito] = useState<Shoping[]>([])
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [ventasRealizadas, setVentasRealizadas] = useState<Venta[]>([])
+  const [products, setProducts] = useState([])
 
+  const METODOSPAGO = {
+    transfer: '43f5b35e-d4a9-40bb-857e-7e5044f37832',
+    efectivo: '73d297f9-34e6-42fa-ac7d-990dc587b3f6',
+    tarjeta: 'af65ae0e-4604-4416-bb10-d0272581a9e7'
+  }
+
+  console.log(products)
   const agregarAlCarrito = (producto): any => {
     setCarrito((prev) => {
-      const existe = prev.find((item) => item.id === producto.id)
+      const existe = prev.find((item) => item.id == producto.id)
       if (existe) {
         return prev.map((item) =>
           item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
@@ -41,32 +51,74 @@ const PointOfSale = (): React.JSX.Element => {
 
   const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0)
 
-  const finalizarVenta = (): void => {
-    if (carrito.length === 0) return
+  const getProducts = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/platillos/')
+      if (response.ok) {
+        const data = await response.json()
+        setProducts(data)
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error)
+    }
+  }
 
-    const nuevaVenta = {
-      id: Date.now(),
-      items: [...carrito],
-      total: total,
-      metodo: metodoPago,
-      hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  console.log(carrito)
+  useEffect(() => {
+    getProducts()
+  }, [])
+
+  async function registrarVenta() {
+    if (carrito.length === 0) return
+    const car = carrito.map((item) => ({
+      id_platillo: item.id,
+      cantidad: item.cantidad
+    }))
+
+    const dataSend = {
+      id_metodo_pago: METODOSPAGO[metodoPago],
+      platillos: car,
+      total_venta: total
     }
 
-    setVentasRealizadas([nuevaVenta, ...ventasRealizadas])
-    setCarrito([])
+    console.log('Data a enviar:', dataSend)
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/registro_pagos/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataSend)
+      })
+      const creado = await response.json()
+      if (response.ok) {
+        const nuevaVenta = {
+          id: Date.now(),
+          items: [...carrito],
+          total: total,
+          metodo: metodoPago,
+          hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+        setVentasRealizadas([nuevaVenta, ...ventasRealizadas])
+        setCarrito([])
+      } else {
+        console.error('Error de validación FastAPI:', creado)
+        alert('Error al guardar en la base de datos')
+      }
+    } catch (error) {
+      alert('No se pudo conectar con el servidor')
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans text-gray-800 select-none">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
-        {/* PANEL IZQUIERDO: PRODUCTOS */}
         <div className="flex-1">
           <header className="mb-6">
             <h1 className="text-2xl font-bold italic">Punto de Venta</h1>
             <p className="text-gray-500 text-sm">Selecciona los productos para vender</p>
           </header>
 
-          <div className="flex justify-center gap-2 mb-8">
+          {/* <div className="flex justify-center gap-2 mb-8">
             <button
               type="button"
               onClick={() => setActiveTab('comida')}
@@ -81,34 +133,30 @@ const PointOfSale = (): React.JSX.Element => {
             >
               <Beer size={18} /> Bebidas
             </button>
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Products
-              productos={productsDataAssets}
+              productos={products}
               agregarAlCarrito={agregarAlCarrito}
               activeTab={activeTab}
             />
           </div>
         </div>
 
-        {/* PANEL DERECHO: CARRITO Y VENTAS */}
         <div className="w-full lg:w-100 flex flex-col gap-6">
-          {/* SECCIÓN CARRITO */}
           <PurchaseOfConsumables
             carrito={carrito}
             modificarCantidad={modificarCantidad}
             setMetodoPago={setMetodoPago}
             total={total}
             metodoPago={metodoPago}
-            finalizarVenta={finalizarVenta}
+            finalizarVenta={registrarVenta}
           />
-          {/* SECCIÓN VENTAS DE HOY CON SCROLL */}
           <SalesHistory ventasRealizadas={ventasRealizadas} />
         </div>
       </div>
 
-      {/* Estilo para ocultar barra de scroll pero mantener funcionalidad */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
