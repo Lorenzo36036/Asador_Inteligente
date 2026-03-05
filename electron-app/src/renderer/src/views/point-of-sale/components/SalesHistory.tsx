@@ -5,12 +5,22 @@ import { JSX } from 'react'
 function SalesHistory({ ventasRealizadas }: { ventasRealizadas: any }): JSX.Element {
   return (
     <div className="bg-white rounded-4xl p-6 shadow-sm border border-gray-100 flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <Clock size={18} className="text-gray-400" />
-        <h2 className="font-bold text-gray-700">Ventas recientes</h2>
+      <div className="flex justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <Clock size={18} className="text-gray-400" />
+          <h2 className="font-bold text-gray-700">Ventas recientes</h2>
+        </div>
+        <span
+          className="text-red-500 hover:text-red-400 text-bold "
+          onClick={() => {
+            localStorage.removeItem('historial_ventas')
+            window.location.reload()
+          }}
+        >
+          Delete
+        </span>
       </div>
 
-      {/* Contenedor con Scroll */}
       <div className="space-y-3 max-h-75 overflow-y-auto pr-2 custom-scrollbar">
         {ventasRealizadas.length === 0 ? (
           <div className="text-center py-8 text-gray-300 text-sm font-medium">
