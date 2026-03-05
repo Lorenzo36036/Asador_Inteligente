@@ -3,6 +3,8 @@ import PointOfSale from './views/point-of-sale/PointOfSale'
 import SideBar from './components/Sidebar'
 import StockManagement from './views/stock-management/StockManagement'
 import DashboardIa from './views/dasboard-ia/DashboardIa'
+import RecursosUsadosView from './views/resources-used/RecursosUsadosView'
+
 
 function App(): React.JSX.Element {
   // El estado de la navegación principal vive aquí
@@ -16,6 +18,9 @@ function App(): React.JSX.Element {
         {currentView === 'pos' && <PointOfSale />}
         {currentView === 'stock' && <StockManagement />}
         {currentView === 'ia' && <DashboardIa />}
+        {currentView === 'resources' && <RecursosUsadosView />} {/* <-- AQUI */}
+
+       
       </main>
     </div>
   )
