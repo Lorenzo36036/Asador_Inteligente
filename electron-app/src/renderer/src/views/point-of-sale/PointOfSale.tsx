@@ -8,9 +8,16 @@ import PurchaseOfConsumables from './components/PurchaseOfConsumables'
 import Products from './components/products'
 import { Shoping, Venta } from '../../interfaces/pointOfSale'
 
+interface Recomendacion {
+  recomendacion: string
+  mensaje: string
+}
+
 const PointOfSale = (): React.JSX.Element => {
   const [carrito, setCarrito] = useState<Shoping[]>([])
   const [metodoPago, setMetodoPago] = useState('efectivo')
+  const [recomendations, setRecomendations] = useState<Recomendacion>()
+
   const [ventasRealizadas, setVentasRealizadas] = useState<Venta[]>(() => {
     const saved = localStorage.getItem('historial_ventas')
     return saved ? JSON.parse(saved) : []
@@ -63,7 +70,27 @@ const PointOfSale = (): React.JSX.Element => {
     }
   }
 
+  const getRecomendationsTensoFlow = async () => {
+    try {
+      setRecomendations({
+        recomendacion: '',
+        mensaje: 'Cargando recomendación...'
+      } as Recomendacion)
+
+      const response = await fetch('http://127.0.0.1:8000/recomendacion_ia_tenso-flow/')
+      const data = await response.json()
+      setRecomendations(data)
+    } catch (error) {
+      console.error('Error de conexión:', error)
+      setRecomendations({
+        recomendacion: 'Error',
+        mensaje: 'No se pudo cargar la recomendación'
+      })
+    }
+  }
+
   useEffect(() => {
+    getRecomendationsTensoFlow()
     getProducts()
     localStorage.setItem('historial_ventas', JSON.stringify(ventasRealizadas))
   }, [ventasRealizadas])
@@ -111,9 +138,19 @@ const PointOfSale = (): React.JSX.Element => {
     <div className="min-h-screen bg-gray-50 p-6 font-sans text-gray-800 select-none">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
         <div className="flex-1">
-          <header className="mb-6">
-            <h1 className="text-2xl font-bold italic">Punto de Venta</h1>
-            <p className="text-gray-500 text-sm">Selecciona los productos para vender</p>
+          <header className="mb-6 flex justify-between">
+            <div>
+              <h1 className="text-2xl font-bold italic">Punto de Venta</h1>
+              <p className="text-gray-500 text-sm">Selecciona los productos para vender</p>
+            </div>
+            <div className="w-100">
+              <h2 className="text-center text-2xl text-green-600 font-bold italic h:bg-green-400">
+                recomendacion del dia
+              </h2>
+              <p className="font-normal text-sm text-center ">
+                {recomendations?.mensaje || 'No hay recomendaciones disponibles'}
+              </p>
+            </div>
           </header>
 
           {/* <div className="flex justify-center gap-2 mb-8">
