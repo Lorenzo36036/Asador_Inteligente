@@ -11,13 +11,16 @@ import { Shoping, Venta } from '../../interfaces/pointOfSale'
 const PointOfSale = (): React.JSX.Element => {
   const [carrito, setCarrito] = useState<Shoping[]>([])
   const [metodoPago, setMetodoPago] = useState('efectivo')
-  const [ventasRealizadas, setVentasRealizadas] = useState<Venta[]>([])
+  const [ventasRealizadas, setVentasRealizadas] = useState<Venta[]>(() => {
+    const saved = localStorage.getItem('historial_ventas')
+    return saved ? JSON.parse(saved) : []
+  })
   const [products, setProducts] = useState([])
 
   const METODOSPAGO = {
-    transfer: '43f5b35e-d4a9-40bb-857e-7e5044f37832',
-    efectivo: '73d297f9-34e6-42fa-ac7d-990dc587b3f6',
-    tarjeta: 'af65ae0e-4604-4416-bb10-d0272581a9e7'
+    transfer: 1,
+    tarjeta: 2,
+    efectivo: 3
   }
 
   const agregarAlCarrito = (producto): any => {
@@ -62,7 +65,8 @@ const PointOfSale = (): React.JSX.Element => {
 
   useEffect(() => {
     getProducts()
-  }, [])
+    localStorage.setItem('historial_ventas', JSON.stringify(ventasRealizadas))
+  }, [ventasRealizadas])
 
   async function registrarVenta() {
     if (carrito.length === 0) return
