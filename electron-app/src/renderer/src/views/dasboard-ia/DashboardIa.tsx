@@ -1,46 +1,101 @@
-import React, { FC } from 'react'
-import {
-  DollarSign,
-  TrendingUp,
-  AlertCircle,
-  PieChart,
-  Bot,
-  Lightbulb,
-  SendHorizontal
-} from 'lucide-react'
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React, { FC, useEffect, useState } from 'react'
+import { DollarSign, TrendingUp, Bot, Lightbulb, SendHorizontal, User, Loader2 } from 'lucide-react'
 import { StatCard } from './components/StatCard'
 import { ChartPlaceholder } from './components/ChartPlaceholder'
-import { AnalysisToast } from './components/AnalysisToast'
-import { AnalysisItem } from './interfaces/AnalysisType'
 
-const analysisData: AnalysisItem[] = [
-  {
-    type: 'error',
-    label: 'Estado',
-    content: (
-      <>
-        Pérdida actual de <span className="text-red-600 font-bold">$292.000</span>
-      </>
-    )
-  },
-  {
-    type: 'info',
-    label: 'Análisis',
-    content: 'Necesitas aumentar ventas o reducir costos operativos.'
-  },
-  {
-    type: 'warning',
-    label: 'Recomendación urgente',
-    urgent: true,
-    content:
-      '1) Ajusta precios al alza, 2) Promociona productos más rentables, 3) Reduce el stock de bajo movimiento.'
-  }
-]
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 const DashboardIa: FC = () => {
-  const handleSendMessage = (e: React.FormEvent): void => {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [inputValue, setInputValue] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [productsVerySells, setProductsVerySells] = useState([])
+  const [totalSales, setTotalSales] = useState(0)
+  const [totalInvestment, setTotalInvestment] = useState(0)
+
+  useEffect(() => {
+    const GetTotalSales = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/ventas_totales_raw/')
+        const data = await response.json()
+        console.log('Ventas Totales:', data.ventas_totales)
+        if (response.ok) {
+          setTotalSales(data.ventas_totales || 0)
+        }
+      } catch (error) {
+        console.error('Error de conexión:', error)
+      }
+    }
+    const GetTotalInvestment = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/inventario/inventario-valor-total/')
+        const data = await response.json()
+        console.log('Inversión Total:', data.inversion_total)
+        if (response.ok) {
+          setTotalInvestment(data.inversion_total || 0)
+        }
+      } catch (error) {
+        console.error('Error de conexión:', error)
+      }
+    }
+
+    const getthreeProducts = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/ventas/productos-top3?limite=3')
+        const data = await response.json()
+        if (response.ok) {
+          setProductsVerySells(data)
+        }
+      } catch (error) {
+        console.error('Error de conexión:', error)
+      }
+    }
+    getthreeProducts()
+    GetTotalSales()
+    GetTotalInvestment()
+  }, [])
+
+  const handleSendMessage = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    console.log('Enviando consulta a la IA...')
+    if (!inputValue.trim() || isLoading) return
+
+    const userQuery = inputValue.trim()
+    setInputValue('')
+    setIsLoading(true)
+    setMessages((prev) => [...prev, { role: 'user', content: userQuery }])
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/respuesta_ia/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ respuesta: userQuery })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data || 'Lo siento, no pude generar una respuesta.'
+          }
+        ])
+      } else {
+        throw new Error('Error en la respuesta')
+      }
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'Lo siento, tuve un problema al conectar con el servidor.' }
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -50,114 +105,117 @@ const DashboardIa: FC = () => {
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Dashboard con IA</h1>
           <p className="text-gray-500 text-sm font-medium">Análisis inteligente de tu negocio</p>
         </div>
-        <div className="text-[10px] text-gray-400 font-mono bg-white px-2 py-1 rounded border">
-          APP_VER: 1.0.0-STABLE
-        </div>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      <div className="justify-center grid grid-cols-1 sm:grid-cols-2  gap-5 mb-8">
         <StatCard
           title="Inversión Total"
-          value="$292.000"
-          subtext="9 productos en stock"
+          value={`$${totalInvestment}`}
+          subtext="-"
           icon={<DollarSign />}
           bgColor="bg-[#1a73e8]"
           label="Inversión Total"
         />
         <StatCard
           title="Ventas Totales"
-          value="$0"
-          subtext="0 transacciones"
+          value={`$${totalSales}`}
+          subtext="-"
           icon={<TrendingUp />}
           bgColor="bg-[#34a853]"
           label="Ventas Totales"
         />
-        <StatCard
-          title="Pérdida"
-          value="$292.000"
-          subtext="-100.0% margen"
-          icon={<AlertCircle />}
-          bgColor="bg-[#d93025]"
-          label="Pérdida"
-        />
-        <StatCard
-          title="ROI"
-          value="0%"
-          subtext="Retorno de inversión"
-          icon={<PieChart />}
-          bgColor="bg-[#9333ea]"
-          label="ROI"
-        />
       </div>
 
-      <section className="bg-red-50 border border-red-100 rounded-2xl p-6 mb-8 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-red-600 p-1.5 rounded-lg shadow-inner">
-            <Bot size={18} className="text-white" />
-          </div>
-          <h2 className="font-bold text-sm text-red-800 uppercase tracking-widest">
-            Análisis Financiero Inteligente
-          </h2>
-        </div>
-
-        <div className="space-y-3">
-          {analysisData.map((item, index) => (
-            <AnalysisToast key={index} type={item.type} label={item.label} isUrgent={item.urgent}>
-              {item.content}
-            </AnalysisToast>
-          ))}
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <ChartPlaceholder title="Productos Más Vendidos" emptyText="No hay datos de ventas aún" />
-        <ChartPlaceholder
-          title="Distribución por Método de Pago"
-          emptyText="No hay datos de pago aún"
-        />
+      <div className="grid grid-cols-1  gap-8 mb-8">
+        <ChartPlaceholder title="Productos Más Vendidos" data={productsVerySells} />
       </div>
 
-      <section className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl shadow-gray-200/50">
-        <div className="bg-[#c5221f] p-5 text-white">
-          <div className="flex items-center gap-3 mb-1">
-            <Bot size={22} className="animate-pulse" />
-            <span className="font-bold text-lg tracking-tight">Consulta con el Asistente IA</span>
+      <section className="bg-white border border-gray-200 rounded-2xl overflow-hidden  shadow-xl">
+        <div className="bg-gray-900 p-5 text-white flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Bot size={22} className={isLoading ? 'animate-bounce' : ''} />
+            <span className="font-bold text-lg">Asistente de Análisis</span>
           </div>
-          <p className="text-xs text-red-100/80 italic font-light">
-            Estrategias personalizadas y análisis en tiempo real
-          </p>
+          {isLoading && (
+            <span className="text-xs bg-gray-700 px-2 py-1 rounded-md animate-pulse">
+              IA pensando...
+            </span>
+          )}
         </div>
 
         <div className="p-6">
-          <div className="inline-block bg-gray-100 p-4 rounded-2xl rounded-tl-none max-w-[80%] text-sm text-gray-700 mb-6 border border-gray-200 shadow-sm">
-            ¡Hola! Soy tu asistente de análisis financiero. Puedo ayudarte a entender el desempeño
-            de tu negocio y sugerir mejoras. ¿En qué puedo apoyarte hoy?
+          <div className="space-y-4 mb-6 h-100 overflow-y-auto pr-2">
+            <div className="flex gap-3 max-w-[80%]">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                <Bot size={16} />
+              </div>
+              <div className="bg-gray-100 p-4 rounded-2xl rounded-tl-none text-sm text-gray-700 border border-gray-200">
+                ¡Hola! Soy tu asistente. ¿En qué puedo ayudarte hoy?
+              </div>
+            </div>
+
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                >
+                  {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                </div>
+                <div
+                  className={`p-4 rounded-2xl text-sm shadow-sm border ${
+                    msg.role === 'user'
+                      ? 'bg-blue-600 text-white border-blue-700 rounded-tr-none'
+                      : 'bg-gray-50 text-gray-800 border-gray-200 rounded-tl-none'
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))}
           </div>
 
-          <form onSubmit={handleSendMessage} className="relative group">
+          <form onSubmit={handleSendMessage} className="relative">
             <input
               type="text"
-              placeholder="Pregunta sobre tu negocio..."
-              className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl py-4 px-5 pr-14 focus:outline-none focus:border-red-500 focus:bg-white transition-all text-sm shadow-inner"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              disabled={isLoading}
+              placeholder={
+                isLoading ? 'La IA está respondiendo...' : 'Pregunta sobre tu negocio...'
+              }
+              className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl py-4 px-5 pr-14 focus:outline-none focus:border-blue-500 transition-all text-sm disabled:opacity-50"
             />
             <button
               type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              disabled={isLoading || !inputValue.trim()}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:text-gray-300 disabled:hover:bg-transparent"
             >
-              <SendHorizontal size={24} />
+              {isLoading ? (
+                <Loader2 className="animate-spin" size={24} />
+              ) : (
+                <SendHorizontal size={24} />
+              )}
             </button>
           </form>
 
-          <div className="mt-5 flex items-start gap-2 bg-amber-50/50 border border-amber-100 rounded-xl p-3">
+          <div className="mt-5 flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
             <Lightbulb size={16} className="text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gray-500 leading-relaxed">
+            <p className="text-[11px] text-gray-500">
               <span className="font-bold text-amber-700 uppercase mr-2">Sugerencias:</span>
-              <button className="hover:underline text-blue-600">¿Cuál es mi ganancia?</button> •
-              <button className="hover:underline text-blue-600 ml-1">
-                ¿Qué producto se vende más?
+              <button
+                onClick={() => setInputValue('¿Cuál es mi ganancia?')}
+                className="hover:underline text-blue-600"
+              >
+                ¿Cuál es mi ganancia?
               </button>{' '}
               •
-              <button className="hover:underline text-blue-600 ml-1">
+              <button
+                onClick={() => setInputValue('¿Cómo recupero mi inversión?')}
+                className="hover:underline text-blue-600 ml-1"
+              >
                 ¿Cómo recupero mi inversión?
               </button>
             </p>
